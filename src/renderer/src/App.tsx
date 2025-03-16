@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import Settings from './components/Settings'
-import electronLogo from './assets/electron.svg'
 import './App.css'
 
 // Define the shortcut type
