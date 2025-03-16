@@ -1,34 +1,109 @@
-import Versions from './components/Versions'
+import { useState, useEffect } from 'react'
+import Settings from './components/Settings'
 import electronLogo from './assets/electron.svg'
+import './App.css'
+
+// Define the shortcut type
+type Shortcut = {
+  key: string
+  modifiers: {
+    control: boolean
+    shift: boolean
+    alt: boolean
+    meta: boolean
+  }
+}
+
+// Helper function to validate shortcut data
+const isValidShortcut = (data: unknown): data is Shortcut => {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'key' in data &&
+    'modifiers' in data &&
+    typeof (data as Shortcut).key === 'string' &&
+    typeof (data as Shortcut).modifiers === 'object'
+  )
+}
 
 function App(): JSX.Element {
-  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
+  const [showSettings, setShowSettings] = useState(false)
+  const [currentShortcut, setCurrentShortcut] = useState<Shortcut>({
+    key: 's',
+    modifiers: {
+      control: true,
+      shift: false,
+      alt: false,
+      meta: false
+    }
+  })
+
+  useEffect(() => {
+    window.electron.ipcRenderer.on('get-shortcut-reply', (_, data) => {
+      if (isValidShortcut(data)) {
+        setCurrentShortcut(data)
+      }
+    })
+
+    // Also listen for shortcut changes from settings
+    window.electron.ipcRenderer.on('shortcut-changed', (_, data) => {
+      if (isValidShortcut(data)) {
+        setCurrentShortcut(data)
+      }
+    })
+
+    // Request the current shortcut from main process
+    window.electron.ipcRenderer.send('get-shortcut')
+
+    return (): void => {
+      window.electron.ipcRenderer.removeAllListeners('get-shortcut-reply')
+      window.electron.ipcRenderer.removeAllListeners('shortcut-changed')
+    }
+  }, [])
+
+  const getShortcutDisplayText = (): string => {
+    const modifiers: string[] = []
+    if (currentShortcut.modifiers.control) modifiers.push('Ctrl')
+    if (currentShortcut.modifiers.shift) modifiers.push('Shift')
+    if (currentShortcut.modifiers.alt) modifiers.push('Alt')
+    if (currentShortcut.modifiers.meta) modifiers.push('Cmd')
+
+    const key = currentShortcut.key === ' ' ? 'Space' : currentShortcut.key.toUpperCase()
+
+    return [...modifiers, key].join(' + ')
+  }
 
   return (
-    <>
-      <img alt="logo" className="logo" src={electronLogo} />
-      <div className="creator">Powered by electron-vite</div>
-      <div className="text">
-        Build an Electron app with <span className="react">React</span>
-        &nbsp;and <span className="ts">TypeScript</span>
-      </div>
-      <p className="tip">
-        Please try pressing <code>F12</code> to open the devTool
-      </p>
-      <div className="actions">
-        <div className="action">
-          <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">
-            Documentation
-          </a>
+    <div className="app-container">
+      {showSettings ? (
+        <div className="settings-view">
+          <Settings />
+          <button className="back-button" onClick={() => setShowSettings(false)}>
+            Back to Main
+          </button>
         </div>
-        <div className="action">
-          <a target="_blank" rel="noreferrer" onClick={ipcHandle}>
-            Send IPC
-          </a>
+      ) : (
+        <div className="main-view">
+          <div className="text">Voice Out - Speak selected text with customizable shortcuts</div>
+          <p className="tip">
+            Press <code>{getShortcutDisplayText()}</code> to speak selected text
+          </p>
+          <div className="actions">
+            <div className="action">
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setShowSettings(true)
+                }}
+              >
+                Settings
+              </a>
+            </div>
+          </div>
         </div>
-      </div>
-      <Versions></Versions>
-    </>
+      )}
+    </div>
   )
 }
 

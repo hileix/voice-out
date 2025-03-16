@@ -5,6 +5,62 @@ import icon from '../../resources/icon.png?asset'
 import say from 'say'
 import { getSelectionText } from '@xitanggg/node-selection'
 
+// Define the shortcut type
+type Shortcut = {
+  key: string
+  modifiers: {
+    control: boolean
+    shift: boolean
+    alt: boolean
+    meta: boolean
+  }
+}
+
+// Default shortcut configuration
+let currentShortcut: Shortcut = {
+  key: 's',
+  modifiers: {
+    control: true,
+    shift: false,
+    alt: false,
+    meta: false
+  }
+}
+
+// Function to convert shortcut object to Electron shortcut string
+function getElectronAccelerator(shortcut: Shortcut): string {
+  const modifiers: string[] = []
+  if (shortcut.modifiers.control) modifiers.push('Control')
+  if (shortcut.modifiers.shift) modifiers.push('Shift')
+  if (shortcut.modifiers.alt) modifiers.push('Alt')
+  if (shortcut.modifiers.meta) modifiers.push('CommandOrControl')
+
+  const key = shortcut.key.length === 1 ? shortcut.key.toUpperCase() : shortcut.key
+
+  return [...modifiers, key].join('+')
+}
+
+// Register the shortcut
+function registerSpeakShortcut(shortcut: Shortcut): boolean {
+  try {
+    // Unregister existing shortcut if any
+    globalShortcut.unregisterAll()
+
+    // Register the new shortcut
+    const accelerator = getElectronAccelerator(shortcut)
+    return globalShortcut.register(accelerator, async () => {
+      const selectionText = getSelectionText()
+      console.log('selectionText:', selectionText)
+      if (selectionText && selectionText.trim() !== '') {
+        say.speak(selectionText)
+      }
+    })
+  } catch (error) {
+    console.error('Failed to register shortcut:', error)
+    return false
+  }
+}
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -54,12 +110,26 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-  // Register a keyboard shortcut for Option+V using Electron's API as a fallback
-  globalShortcut.register('Control+S', async () => {
-    const selectionText = getSelectionText()
-    if (selectionText && selectionText.trim() !== '') {
-      say.speak(selectionText)
-    }
+  // Register the default shortcut
+  registerSpeakShortcut(currentShortcut)
+
+  // Handle get-shortcut request from renderer
+  ipcMain.on('get-shortcut', (event) => {
+    event.reply('get-shortcut-reply', currentShortcut)
+  })
+
+  // Handle set-shortcut request from renderer
+  ipcMain.on('set-shortcut', (_, shortcut: Shortcut) => {
+    // Update current shortcut
+    currentShortcut = shortcut
+
+    // Re-register the shortcut
+    registerSpeakShortcut(currentShortcut)
+
+    // Notify all windows about the shortcut change
+    BrowserWindow.getAllWindows().forEach((window) => {
+      window.webContents.send('shortcut-changed', currentShortcut)
+    })
   })
 
   createWindow()
@@ -78,6 +148,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+// Unregister all shortcuts when app is about to quit
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })
 
 // In this file you can include the rest of your app's specific main process

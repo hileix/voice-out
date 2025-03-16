@@ -1,0 +1,94 @@
+.settings-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+  color: #2c3e50;
+  margin-top: 0;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.settings-section {
+  margin-bottom: 2rem;
+}
+
+h3 {
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.settings-description {
+  color: #7f8c8d;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.shortcut-recorder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  background-color: #f9f9f9;
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  margin-bottom: 1rem;
+  height: 20px;
+}
+
+.shortcut-recorder:hover {
+  border-color: #3498db;
+  background-color: #f0f7fb;
+}
+
+.shortcut-recorder.recording {
+  border-color: #e74c3c;
+  background-color: #fdf0ed;
+  color: #e74c3c;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(231, 76, 60, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+  }
+}
+
+.settings-buttons {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.reset-button {
+  background-color: #ecf0f1;
+  border: none;
+  color: #7f8c8d;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.reset-button:hover {
+  background-color: #dfe6e9;
+  color: #2c3e50;
+} 
