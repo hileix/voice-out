@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, globalShortcut } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, globalShortcut, dialog, systemPreferences } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -40,6 +40,19 @@ function getElectronAccelerator(shortcut: Shortcut): string {
   return [...modifiers, key].join('+')
 }
 
+// Check accessibility permissions on macOS
+function checkAccessibilityPermissions(): void {
+  if (process.platform === 'darwin') {
+    // Call with 'true' to prompt the system to request accessibility access
+    const isTrusted = systemPreferences.isTrustedAccessibilityClient(true)
+    console.log('Accessibility permission status:', isTrusted ? 'authorized' : 'not authorized')
+
+    if (!isTrusted) {
+      console.log('Accessibility permission not granted. User should see system prompt or check System Settings.')
+    }
+  }
+}
+
 // Register the shortcut
 function registerSpeakShortcut(shortcut: Shortcut): boolean {
   try {
@@ -49,10 +62,21 @@ function registerSpeakShortcut(shortcut: Shortcut): boolean {
     // Register the new shortcut
     const accelerator = getElectronAccelerator(shortcut)
     return globalShortcut.register(accelerator, async () => {
-      const selectionText = getSelectionText()
-      console.log('selectionText:', selectionText)
+      if (process.platform === 'darwin') {
+        // Use 'true' to prompt for access if needed
+        const isTrusted = systemPreferences.isTrustedAccessibilityClient(true)
+        console.log('Permission check at shortcut trigger:', isTrusted)
+      }
+
+      // Use longer timeout (200ms) and enable debug logging
+      const selectionText = getSelectionText(200, true)
+      console.log('selectionText:', JSON.stringify(selectionText), 'length:', selectionText?.length)
+
       if (selectionText && selectionText.trim() !== '') {
+        console.log('Speaking text:', selectionText)
         say.speak(selectionText)
+      } else {
+        console.log('No text to speak. Empty or whitespace.')
       }
     })
   } catch (error) {
@@ -109,6 +133,9 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // Check accessibility permissions on macOS
+  checkAccessibilityPermissions()
 
   // Register the default shortcut
   registerSpeakShortcut(currentShortcut)
